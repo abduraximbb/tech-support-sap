@@ -292,7 +292,8 @@ export class AppealsService {
 <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
 <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
 <b>${APPEAL_DETAILS[user.language][6]}</b> ${appeal.importance_level}\n
-<b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}`;
+<b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}\n
+<b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}`;
 
       await this.bot.telegram.sendMessage(GROUP_ID, messageText, {
         parse_mode: 'HTML',
@@ -415,7 +416,8 @@ export class AppealsService {
 <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
 <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
 <b>${APPEAL_DETAILS[user.language][6]}</b> ${appeal.importance_level}\n
-<b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}`;
+<b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}\n
+<b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}`;
 
         await this.bot.telegram.sendMessage(GROUP_ID, messageText, {
           parse_mode: 'HTML',
@@ -800,13 +802,13 @@ export class AppealsService {
       };
 
       const messageText =
-        `<b>${CALL_DETAILS[user.language][0]}</b>\n` +
-        `<b>${CALL_DETAILS[user.language][1]}</b> ${newCall.id}\n` +
-        `<b>${CALL_DETAILS[user.language][2]}</b> ${user.user_id}\n` +
-        `<b>${CALL_DETAILS[user.language][3]}</b> ${user.sap_id}\n` +
-        `<b>${CALL_DETAILS[user.language][4]}</b> ${user.company_name}\n` +
-        `<b>${CALL_DETAILS[user.language][5]}</b> ${user.name}\n` +
-        `<b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}\n` +
+        `<b>${CALL_DETAILS[user.language][0]}</b>\n\n` +
+        `<b>${CALL_DETAILS[user.language][1]}</b> ${newCall.id}\n\n` +
+        `<b>${CALL_DETAILS[user.language][2]}</b> ${user.user_id}\n\n` +
+        `<b>${CALL_DETAILS[user.language][3]}</b> ${user.sap_id}\n\n` +
+        `<b>${CALL_DETAILS[user.language][4]}</b> ${user.company_name}\n\n` +
+        `<b>${CALL_DETAILS[user.language][5]}</b> ${user.name}\n\n` +
+        `<b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}\n\n` +
         `<b>${CALL_DETAILS[user.language][7]}</b> ${formatDateTime(newCall.createdAt)}`;
 
       await this.bot.telegram.sendMessage(GROUP_ID, messageText, {

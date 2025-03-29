@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CreateBotDto } from './dto/create-bot.dto';
 import { UpdateBotDto } from './dto/update-bot.dto';
-import { Context, Markup } from 'telegraf';
+import { Context, Markup, Telegraf } from 'telegraf';
 import { InjectModel } from '@nestjs/sequelize';
 import { Bot } from './models/bot.model';
 import { Message } from 'telegraf/typings/core/types/typegram';
+import * as cron from 'node-cron';
+
 import {
   ALREADY_REGISTRATED,
   INVALID_ID,
@@ -21,10 +23,16 @@ import { Customers } from 'src/admin/models/customer.model';
 
 @Injectable()
 export class BotService {
+  private readonly bot: Telegraf;
+
   constructor(
     @InjectModel(Bot) private readonly botModel: typeof Bot,
     @InjectModel(Customers) private readonly customersModel: typeof Customers,
-  ) {}
+  ) {
+    this.bot = new Telegraf(process.env.BOT_TOKEN);
+
+    this.startCronJob(); // ✅ To‘g‘ri joyga qo‘yildi
+  }
 
   async onStart(ctx: Context) {
     if (ctx.chat.id < 0) return;
@@ -34,7 +42,10 @@ export class BotService {
       where: { user_id: userId },
     });
 
-    if ((user && user.last_step !== 'finish') || !user) {
+    if (
+      (user && ['lang', 'phone', 'name', 'id'].includes(user.last_step)) ||
+      !user
+    ) {
       if (user) {
         this.botModel.destroy({ where: { user_id: userId } });
       }
@@ -52,6 +63,9 @@ export class BotService {
         },
       );
     } else {
+      if (user.last_step !== 'finish') {
+        user.update({ last_step: 'finish' });
+      }
       await ctx.reply(ALREADY_REGISTRATED[user.language], {
         parse_mode: 'HTML',
         ...Markup.keyboard(
@@ -182,5 +196,56 @@ export class BotService {
     } catch (error) {
       console.log('onText: ', error);
     }
+  }
+
+  async weekly_reminder() {
+    const groups = await this.customersModel.findAll({
+      attributes: ['customer_group_id'],
+      raw: true,
+    });
+
+    // const
+
+    const message =
+      'Ассалому алайкум, ҳурматли мижоз! \n\n' +
+      'ABC жамоаси сиз билан ҳамкорликда ишлашдан мамнун. ' +
+      'ABC компаниясидаги қўллаб-қувватлаш жамоаси сизда учрайдиган муаммоларни ҳал қилишга тайёр. ' +
+      'Агар SAP Business One дастурида қандайдир муаммолар туғилса, қуйидаги рақамга боғланинг: \n\n' +
+      '📞 Tel: 78 122 00 25';
+
+    const gifUrl =
+      'CgACAgIAAxkBAAIJOGfihy1t7n9r3zGd0WAUAAFvVVgmHAAChFUAAvNjQEgqDwQe4Nw-7zYE';
+
+    for (const group of groups) {
+      try {
+        if (group.customer_group_id) {
+          await this.bot.telegram.sendDocument(
+            group.customer_group_id,
+            gifUrl,
+            {
+              caption: message,
+              parse_mode: 'HTML',
+            },
+          );
+        }
+      } catch (error) {
+        console.error(`Xabar jo'natishda xatolik: `, error);
+      }
+    }
+  }
+
+  // ✅ Cron jobni ishga tushirish
+  startCronJob() {
+    cron.schedule(
+      '16 14 * * 4', // Har dushanba 14:40
+      () => {
+        this.weekly_reminder(); // Haftalik xabarni jo‘natish
+      },
+      {
+        timezone: 'Asia/Tashkent',
+      },
+    );
+
+    console.log('✅ Har dushanba 14:40 da avtomatik xabar yuboriladi.');
   }
 }
