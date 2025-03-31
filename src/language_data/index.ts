@@ -243,7 +243,7 @@ export const CALL_DETAILS = {
 };
 
 export const ALREADY_REGISTRATED = {
-  uz: "Siz allaqachon ro'yxatdan o'tgansiz ✅",
+  uz: "Siz ro'yxatdan o'tgansiz ✅",
   ru: 'Вы уже зарегистрированы ✅',
 };
 

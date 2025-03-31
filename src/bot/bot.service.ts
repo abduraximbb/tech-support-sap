@@ -237,7 +237,7 @@ export class BotService {
   // ✅ Cron jobni ishga tushirish
   startCronJob() {
     cron.schedule(
-      '16 14 * * 4', // Har dushanba 14:40
+      '00 10 * * 1',
       () => {
         this.weekly_reminder(); // Haftalik xabarni jo‘natish
       },
@@ -245,7 +245,5 @@ export class BotService {
         timezone: 'Asia/Tashkent',
       },
     );
-
-    console.log('✅ Har dushanba 14:40 da avtomatik xabar yuboriladi.');
   }
 }
