@@ -4,7 +4,7 @@ interface ICustomersCreationAttr {
   customer_name: string;
   customer_id: number;
   short_name: string;
-  customer_group_id: string;
+  customer_group_id: number;
 }
 
 @Table({ tableName: 'customers' })
@@ -22,7 +22,7 @@ export class Customers extends Model<Customers, ICustomersCreationAttr> {
   customer_name: string;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
   })
   customer_id: number;
 
@@ -32,7 +32,7 @@ export class Customers extends Model<Customers, ICustomersCreationAttr> {
   short_name: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.BIGINT,
   })
-  customer_group_id: string;
+  customer_group_id: number;
 }

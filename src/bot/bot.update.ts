@@ -14,6 +14,8 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Bot } from './models/bot.model';
 import { ADMINS } from 'src/app.constants';
 import { AdminServise } from 'src/admin/admin.service';
+import { AdminSteps } from 'src/admin/models/admin-steps.model';
+import { ANSWER_BAL } from 'src/language_data';
 
 @Update()
 export class BotUpdate {
@@ -22,6 +24,8 @@ export class BotUpdate {
     private readonly appealService: AppealsService,
     private readonly adminService: AdminServise,
     @InjectModel(Bot) private readonly botModel: typeof Bot,
+    @InjectModel(AdminSteps)
+    private readonly adminStepsModel: typeof AdminSteps,
   ) {}
 
   @Start()
@@ -204,9 +208,85 @@ export class BotUpdate {
     await this.adminService.onNotAnsweredAppeals(ctx);
   }
 
+  @Hears('Murojaatni yakunlash')
+  async onCompleteAppeal(@Ctx() ctx: Context) {
+    await this.adminService.onCompleteAppeal(ctx);
+  }
+
+  @Hears(['✅ Murojaatni yopish', '✅ Закрыть обращение'])
+  async onCompleteAppelaByCustomer(@Ctx() ctx: Context) {
+    await this.appealService.onCompleteAppealByCustomer(ctx);
+  }
+
+  @Hears(["➕ Qo'shimcha qilish", '➕ Добавить вопрос'])
+  async onAddToAppealByCustomer(@Ctx() ctx: Context) {
+    await this.appealService.onAddToAppealByCustomer(ctx);
+  }
+
+  @Hears(['🔄 Qayta javob olish', '🔄 Получить ответ заново'])
+  async onReplyBack(@Ctx() ctx: Context) {
+    await this.appealService.onReplyBack(ctx);
+  }
+
+  @Hears(["➕ Qo'shimcha savol berish", '➕ Задать дополнительный вопрос'])
+  async onAddAdditionQuestion(@Ctx() ctx: Context) {
+    await this.appealService.onAddAdditionQuestion(ctx);
+  }
+
+  @Hears("Yangi mijoz qo'shish")
+  async onAddNewCustomer(@Ctx() ctx: Context) {
+    await this.adminService.onAddNewCustomer(ctx);
+  }
+
+  @Hears('Menyuga qaytish')
+  async onBackToAdminMenu(@Ctx() ctx: Context) {
+    await this.adminService.onBackToAdminMenu(ctx);
+  }
+
+  @Hears([
+    '1 - Juda yomon',
+    '2 - Yomon',
+    '3 - Qoniqarli',
+    '4 - Yaxshi',
+    '5 - A’lo',
+    '1 - Очень плохо',
+    '2 - Плохо',
+    '3 - Удовлетворительно',
+    '4 - Хорошо',
+    '5 - Отлично',
+  ])
+  async onBalToAnswer(@Ctx() ctx: Context) {
+    await this.appealService.onBalToAnswer(ctx);
+  }
+
   @On('text')
   async onText(@Ctx() ctx: Context) {
     if (ADMINS.includes(ctx.from.id)) {
+      const exist_admin_step = await this.adminStepsModel.findOne({
+        where: { admin_id: ctx.from.id },
+      });
+      if (exist_admin_step && exist_admin_step.last_step === 'add_new_cus') {
+        await this.adminService.onAddCompanyName(ctx);
+        return;
+      } else if (
+        exist_admin_step &&
+        exist_admin_step.last_step === 'company_name'
+      ) {
+        await this.adminService.onAddCompanyShortName(ctx);
+        return;
+      } else if (
+        exist_admin_step &&
+        exist_admin_step.last_step === 'brand_name'
+      ) {
+        await this.adminService.onAddSapId(ctx);
+        return;
+      } else if (
+        exist_admin_step &&
+        exist_admin_step.last_step === 'group_id'
+      ) {
+        await this.adminService.onAddGroupId(ctx);
+        return;
+      }
       await this.adminService.onAdminReply(ctx);
       return;
     }

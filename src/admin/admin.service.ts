@@ -7,18 +7,35 @@ import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Calls } from 'src/appeal/models/calls.model';
+import { TemporaryCustomersIds } from './models/temporary-customers-id.model';
+import {
+  APPEAL_DETAILS,
+  APPEAL_NUMBER,
+  IS_SATISFACTORY,
+  YES_OR_NO,
+} from 'src/language_data';
+import { Bot } from 'src/bot/models/bot.model';
+import { AdminSteps } from './models/admin-steps.model';
+import { Customers } from './models/customer.model';
 
 @Injectable()
 export class AdminServise {
   constructor(
     @InjectModel(Appeals) private readonly appealsModel: typeof Appeals,
     @InjectModel(Calls) private readonly callsModel: typeof Calls,
+    @InjectModel(TemporaryCustomersIds)
+    private readonly temporaryCustomersIdsModel: typeof TemporaryCustomersIds,
+    @InjectModel(Bot) private readonly botModel: typeof Bot,
+    @InjectModel(AdminSteps)
+    private readonly adminStepsModel: typeof AdminSteps,
+    @InjectModel(Customers) private readonly customersModel: typeof Customers,
   ) {}
 
   async onAdminReply(ctx: Context) {
     try {
       const adminIds = ADMINS;
       if (!adminIds.includes(ctx.from.id)) return; // Faqat admin reply bera oladi
+
       const message = ctx.message as any;
       if (!message.reply_to_message) {
         return ctx.reply(
@@ -27,21 +44,44 @@ export class AdminServise {
       }
 
       const repliedMessage = message.reply_to_message;
-      const match = repliedMessage.text?.match(/User ID: (\d+)/);
-      const appealId = parseInt(
-        repliedMessage.text?.match(/Murojaat ID:\s*(\d+)/)[1],
-      );
+      let match = repliedMessage.text?.match(/User ID: (\d+)/);
+      if (!match) {
+        match = repliedMessage.text?.match(/Пользователя ID: (\d+)/);
+      }
 
-      await this.appealsModel.update(
-        { status: Status.ANSWERED, answered_time: new Date() },
-        { where: { id: appealId } },
-      );
+      let appealMatch = repliedMessage.text?.match(/Murojaat ID: \s*(\d+)/);
+      if (!appealMatch) {
+        appealMatch = repliedMessage.text?.match(/Oбращения ID: \s*(\d+)/);
+      }
 
       if (!match) {
         return ctx.reply('❌ Xatolik: Foydalanuvchi ID sini topib bo‘lmadi.');
       }
 
+      if (!appealMatch) {
+        return ctx.reply('❌ Xatolik: Murojaat ID sini topib bo‘lmadi.');
+      }
+
       const userId = parseInt(match[1]); // ID ni olish
+      const user = await this.botModel.findOne({ where: { user_id: userId } });
+      const appealId = parseInt(appealMatch[1]); // Appeal ID ni olish
+
+      const appeal = await this.appealsModel.findByPk(appealId);
+      if (appeal && !appeal.answered_time) {
+        await appeal.update({ answered_time: new Date() });
+      }
+
+      const temporaryIds = await this.temporaryCustomersIdsModel.findOne({
+        where: { customer_id: userId, admin_id: ctx.from.id },
+      });
+
+      if (!temporaryIds) {
+        await this.temporaryCustomersIdsModel.create({
+          admin_id: ctx.from.id,
+          customer_id: userId,
+          appeal_id: appeal.id,
+        });
+      }
 
       // 1️⃣ **Foydalanuvchi bilan chat bormi, tekshiramiz**
       const chat = await ctx.telegram.getChat(userId).catch(() => null);
@@ -55,7 +95,7 @@ export class AdminServise {
       if (message.text) {
         await ctx.telegram.sendMessage(
           userId,
-          `<b>SAP Business one</b>\n${message.text}`,
+          `<b>SAP Business One</b>\n\n${APPEAL_NUMBER[user.language]} ${appeal.id}\n\n${message.text}`,
           { parse_mode: 'HTML' },
         );
       } else if (message.document) {
@@ -65,7 +105,9 @@ export class AdminServise {
       } else if (message.video) {
         await ctx.telegram.sendVideo(userId, message.video.file_id);
       } else if (message.photo) {
-        await ctx.telegram.sendPhoto(userId, message.photo[3].file_id);
+        // Eng katta hajmli rasmni yuborish
+        const largestPhoto = message.photo[message.photo.length - 1].file_id;
+        await ctx.telegram.sendPhoto(userId, largestPhoto);
       } else {
         return ctx.reply(
           '❌ Xatolik: Ushbu xabar turi qo‘llab-quvvatlanmaydi.',
@@ -74,17 +116,26 @@ export class AdminServise {
 
       await ctx.reply('✅ Xabar foydalanuvchiga yuborildi.');
     } catch (error) {
+      console.error('Xatolik:', error);
       await ctx.reply('❌ Xatolik: Xabar foydalanuvchiga yuborilmadi.');
     }
   }
 
   async onCommandAdmin(ctx: Context) {
     if (ADMINS.includes(ctx.from.id)) {
-      ctx.reply('Xush kelibsiz', {
+      const exist_admin_step = await this.adminStepsModel.findOne({
+        where: { admin_id: ctx.from.id },
+      });
+      if (exist_admin_step) {
+        await exist_admin_step.destroy();
+      }
+
+      await ctx.reply('Xush kelibsiz', {
         parse_mode: 'HTML',
         ...Markup.keyboard([
+          ['Murojaatni yakunlash'],
           ['Hisobot', "Qo'ng'iroqlar"],
-          ['Javob berilmagan murojaatlar'],
+          ['Javob berilmagan murojaatlar', "Yangi mijoz qo'shish"],
         ]).resize(),
       });
     }
@@ -117,13 +168,13 @@ export class AdminServise {
         { header: 'Name', key: 'name', width: 25 },
         { header: `Murojaat matni`, key: 'text', width: 100 }, // Matn uchun kengroq joy ajratildi
         { header: `Muhimlilik`, key: 'importance', width: 11 },
-
+        { header: "Qo'yilgan baho", key: 'answer_bal', width: 17 },
         { header: 'Murojaat vaqti', key: 'appeal_time', width: 18 },
         { header: `Holati`, key: 'status', width: 17 },
         {
           header: 'Javob berilgan vaqt',
           key: 'answered_time',
-          width: 16,
+          width: 18,
         },
       ];
 
@@ -174,6 +225,7 @@ export class AdminServise {
           name: appeal.name,
           text: appeal.text,
           importance: appeal.importance_level,
+          answer_bal: appeal.answer_bal,
           appeal_time: formatDateTime(appeal.updatedAt),
           status: status_appeal,
           answered_time: formatDateTime(appeal.answered_time),
@@ -297,13 +349,12 @@ export class AdminServise {
       const pageSize = 10;
       const offset = (page - 1) * pageSize;
 
-     const { count, rows: appeals } = await this.appealsModel.findAndCountAll({
-       where: { status: Status.WAITING },
-       limit: pageSize,
-       offset: offset,
-       order: [['updatedAt', 'ASC']], // updatedAt bo‘yicha o‘sish tartibida saralash
-     });
-
+      const { count, rows: appeals } = await this.appealsModel.findAndCountAll({
+        where: { status: Status.WAITING },
+        limit: pageSize,
+        offset: offset,
+        order: [['updatedAt', 'ASC']], // updatedAt bo‘yicha o‘sish tartibida saralash
+      });
 
       if (appeals.length > 0) {
         let textMessage = '<b>Murojaatlar:</b>';
@@ -457,4 +508,211 @@ export class AdminServise {
       console.log('onChooseAppeal: ', error);
     }
   }
+
+  async onCompleteAppeal(ctx: Context) {
+    try {
+      const temporary_customers_id =
+        await this.temporaryCustomersIdsModel.findOne({
+          where: { admin_id: ctx.from.id },
+          order: [['createdAt', 'DESC']], // Eng oxirgi yozuvni olish
+        });
+
+      if (!temporary_customers_id) {
+        await ctx.reply("Yakunlash kerak bo'lgan murojaat yoq");
+        return;
+      }
+
+      const user = await this.botModel.findByPk(
+        temporary_customers_id.customer_id,
+      );
+
+      await ctx.telegram.sendMessage(
+        user.user_id,
+        `${IS_SATISFACTORY[user.language]}\n${APPEAL_NUMBER[user.language]} ${temporary_customers_id.appeal_id}`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: Markup.keyboard([
+            [YES_OR_NO[user.language][0], YES_OR_NO[user.language][1]],
+          ]).resize().reply_markup, // <<< BU MUHIM!
+        },
+      );
+
+      await ctx.reply(
+        `${temporary_customers_id.appeal_id} - murojaatga yakunlash haqida so'rov jo'natildi`,
+      );
+    } catch (error) {
+      console.log('onCompleteAppeal: ', error);
+    }
+  }
+
+  async onAddNewCustomer(ctx: Context) {
+    try {
+      await ctx.reply('Kampaniya rasmiy nomini kiriting:', {
+        parse_mode: 'HTML',
+        ...Markup.keyboard(['Menyuga qaytish']),
+      });
+
+      const exist_admin_step = await this.adminStepsModel.findOne({
+        where: { admin_id: ctx.from.id },
+      });
+      if (exist_admin_step && exist_admin_step.last_step !== 'finish') {
+        await exist_admin_step.destroy();
+      }
+
+      await this.adminStepsModel.create({
+        admin_id: ctx.from.id,
+        last_step: 'add_new_cus',
+      });
+    } catch (error) {
+      console.log('onAddNewCustomer: ', error);
+    }
+  }
+
+  async onBackToAdminMenu(ctx: Context) {
+    try {
+      if (ADMINS.includes(ctx.from.id)) {
+        ctx.reply('Xush kelibsiz', {
+          parse_mode: 'HTML',
+          ...Markup.keyboard([
+            ['Murojaatni yakunlash'],
+            ['Hisobot', "Qo'ng'iroqlar"],
+            ['Javob berilmagan murojaatlar', "Yangi mijoz qo'shish"],
+          ]).resize(),
+        });
+
+        const exist_admin_step = await this.adminStepsModel.findOne({
+          where: { admin_id: ctx.from.id },
+        });
+
+        if (exist_admin_step) {
+          await exist_admin_step.destroy();
+        }
+      }
+    } catch (error) {
+      console.log('onBackToAdminMenu: ', error);
+    }
+  }
+
+  async onAddCompanyName(ctx: Context) {
+    try {
+      if ('text' in ctx.message) {
+        const exist_admin_step = await this.adminStepsModel.findOne({
+          where: { admin_id: ctx.from.id },
+        });
+        if (exist_admin_step && exist_admin_step.last_step === 'add_new_cus') {
+          const newCustomer = await this.customersModel.create({
+            customer_name: ctx.message.text,
+          });
+
+          await exist_admin_step.update({
+            last_step: 'company_name',
+            customer_id: newCustomer.dataValues.id,
+          });
+
+          await ctx.reply('Brand nomini kiriting:', {
+            parse_mode: 'HTML',
+            ...Markup.keyboard(['Menyuga qaytish']),
+          });
+        }
+      }
+    } catch (error) {
+      console.log('onAddCompanyName: ', error);
+    }
+  }
+
+  async onAddCompanyShortName(ctx: Context) {
+    try {
+      if ('text' in ctx.message) {
+        const exist_admin_step = await this.adminStepsModel.findOne({
+          where: { admin_id: ctx.from.id },
+        });
+
+        if (exist_admin_step && exist_admin_step.last_step === 'company_name') {
+          await this.customersModel.update(
+            { short_name: ctx.message.text },
+            { where: { id: exist_admin_step.customer_id } },
+          );
+
+          await exist_admin_step.update({ last_step: 'brand_name' });
+
+          await ctx.reply('SAP tomonidan berilgan ID ni kiriting:', {
+            parse_mode: 'HTML',
+            ...Markup.keyboard(['Menyuga qaytish']),
+          });
+        }
+      }
+    } catch (error) {
+      console.log('onAddCompanyShortName: ', error);
+    }
+  }
+
+  async onAddSapId(ctx: Context) {
+    try {
+      if ('text' in ctx.message) {
+        if (isNaN(+ctx.message.text)) {
+          await ctx.reply('Xato ID kiritildi');
+          return;
+        }
+
+        const exist_admin_step = await this.adminStepsModel.findOne({
+          where: { admin_id: ctx.from.id },
+        });
+
+        if (exist_admin_step && exist_admin_step.last_step === 'brand_name') {
+          await this.customersModel.update(
+            { customer_id: +ctx.message.text },
+            { where: { id: exist_admin_step.customer_id } },
+          );
+
+          await exist_admin_step.update({ last_step: 'group_id' });
+
+          await ctx.reply('Telegram guruh ID ni kiriting:', {
+            parse_mode: 'HTML',
+            ...Markup.keyboard(['Menyuga qaytish']),
+          });
+        }
+      }
+    } catch (error) {
+      console.log('onAddCompanyShortName: ', error);
+    }
+  }
+
+  async onAddGroupId(ctx: Context) {
+    try {
+      if ('text' in ctx.message) {
+        const groupId = +ctx.message.text.trim();
+        if (isNaN(groupId)) {
+          await ctx.reply('Xato ID kiritildi');
+          return;
+        }
+
+        const exist_admin_step = await this.adminStepsModel.findOne({
+          where: { admin_id: ctx.from.id },
+        });
+
+        if (exist_admin_step && exist_admin_step.last_step === 'group_id') {
+          await this.customersModel.update(
+            { customer_group_id: +groupId },
+            { where: { id: exist_admin_step.customer_id } },
+          );
+
+          await exist_admin_step.destroy();
+
+          await ctx.reply("Yangi mijoz muvaffaqiyatli qo'shildi", {
+            parse_mode: 'HTML',
+            ...Markup.keyboard([
+              ['Murojaatni yakunlash'],
+              ['Hisobot', "Qo'ng'iroqlar"],
+              ['Javob berilmagan murojaatlar', "Yangi mijoz qo'shish"],
+            ]).resize(),
+          });
+        }
+      }
+    } catch (error) {
+      console.log('onAddGroupId: ', error);
+    }
+  }
 }
+
+//"-4659521724"
+//"-4628141403"

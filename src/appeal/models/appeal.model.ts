@@ -9,7 +9,7 @@ export enum ImportanceLevel {
 export enum Status {
   ORDERING = 'ordering',
   WAITING = 'waiting',
-  ANSWERED = 'answered',
+  COMPLETED = 'completed',
 }
 
 // Media fayl obyekti interfeysi
@@ -30,6 +30,7 @@ interface IAppealCreationAttr {
   answered_time: Date;
   company_name: string;
   name: string;
+  answer_bal: number;
 }
 
 @Table({ tableName: 'appeals' })
@@ -89,4 +90,9 @@ export class Appeals extends Model<Appeals, IAppealCreationAttr> {
     type: DataType.STRING,
   })
   name: string;
+
+  @Column({
+    type: DataType.INTEGER,
+  })
+  answer_bal: number;
 }

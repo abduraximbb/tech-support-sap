@@ -11,6 +11,8 @@ import { Calls } from './appeal/models/calls.model';
 import { TemporaryDate } from './appeal/models/temporary-date.model';
 import { Weekly_reminder } from './bot/models/weekly-reminder.model';
 import { LoggerModule } from './handler/logger.module';
+import { TemporaryCustomersIds } from './admin/models/temporary-customers-id.model';
+import { AdminSteps } from './admin/models/admin-steps.model';
 
 @Module({
   imports: [
@@ -29,13 +31,22 @@ import { LoggerModule } from './handler/logger.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [Bot, Appeals, Customers,Calls,TemporaryDate,Weekly_reminder],
+      models: [
+        Bot,
+        Appeals,
+        Customers,
+        Calls,
+        TemporaryDate,
+        Weekly_reminder,
+        TemporaryCustomersIds,
+        AdminSteps,
+      ],
       autoLoadModels: true,
       sync: { alter: true }, //force
       logging: false,
     }),
     BotModule,
-    LoggerModule
+    LoggerModule,
   ],
   controllers: [],
   providers: [],

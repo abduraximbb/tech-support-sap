@@ -192,8 +192,16 @@ export const SUCCESSED_CALL_APPEAL = {
 };
 
 export const NEW_OR_UPDATED_APPEAL = {
-  uz: ['Yangi murojaat', "murojaat o'zgartirildi"],
-  ru: ['Новое обращение', 'oбращение изменено'], // Ruscha tarjimalar qo‘shildi
+  uz: [
+    'Yangi murojaat',
+    "Murojaat o'zgartirildi",
+    "Murojaat yopilmadi, qo'shimcha savol qo'shildi",
+  ],
+  ru: [
+    'Новое обращение',
+    'Oбращение изменено',
+    'Обращение не закрыто, добавлен дополнительный вопрос',
+  ], // Ruscha tarjimalar qo‘shildi
 };
 
 export const APPEAL_DETAILS = {
@@ -201,8 +209,8 @@ export const APPEAL_DETAILS = {
     'Murojaat ID:',
     'User ID:',
     'SAP ID:',
-    'Company name:',
-    'User name:',
+    'Kampaniya nomi:',
+    'Xodim ismi:',
     'Murojaat matni:',
     'Muhimlilik:',
     'Murojaat vaqti:',
@@ -247,3 +255,74 @@ export const ALREADY_REGISTRATED = {
   ru: 'Вы уже зарегистрированы ✅',
 };
 
+export const IS_SATISFACTORY = {
+  uz: "Ushbu murojaatni yopishni xohlaysizmi yoki qo'shimcha savollaringiz bormi?",
+  ru: 'Хотите закрыть этот обращения или у вас есть дополнительные вопросы?',
+};
+
+export const YES_OR_NO = {
+  uz: ['✅ Murojaatni yopish', '➕ Qo\'shimcha qilish'],
+  ru: ['✅ Закрыть обращение', '➕ Добавить вопрос'],
+};
+
+
+export const COMPLETED_APPEAL = {
+  uz: ['murojaat yopildi', '✅ Rahmat! Sizning fikringiz biz uchun muhim.'],
+  ru: ['oбращение закрыто', '✅ Спасибо! Ваше мнение важно для нас.'],
+};
+
+
+export const APPEAL_NUMBER = {
+  uz: 'Murojaat raqami - ',
+  ru: 'Номер обращения - ',
+};
+
+export const ADD_QUESTION = {
+  uz: "❓ Qo'shimcha savol berasizmi yoki 🔄 faqat qayta javob berish kerakmi?",
+  ru: '❓ У вас есть дополнительный вопрос или 🔄 просто повторный ответ?',
+};
+
+
+export const ADD_QUESTION_OR_NO = {
+  uz: ["➕ Qo'shimcha savol berish", '🔄 Qayta javob olish'],
+  ru: ['➕ Задать дополнительный вопрос', '🔄 Получить ответ заново'],
+};
+
+export const REPLY_ANSWER = {
+  uz: " - murojaat bo'yicha biz sizga qayta javob beramiz",
+  ru: ' - по вашему обращению мы вам ответим повторно',
+};
+
+export const APPEAL_COMPLETED = {
+  uz: [
+    'Murojaat yopildi',
+    'Murojaat ID:',
+    'Xodim:',
+    'Yopilgan vaqt',
+    "Qo'yilgan baho:",
+  ],
+  ru: [
+    'Обращение закрыто',
+    'ID обращения:',
+    'Сотрудник:',
+    'Время закрытия',
+    'Рейтинг:',
+  ],
+};
+
+export const ANSWER_BAL = {
+  uz: 'Xizmatimizni 1 dan 5 gacha baholang',
+  ru: 'Оцените нашу услугу от 1 до 5',
+  options: [
+    { value: 1, uz: '1 - Juda yomon', ru: '1 - Очень плохо' },
+    { value: 2, uz: '2 - Yomon', ru: '2 - Плохо' },
+    { value: 3, uz: '3 - Qoniqarli', ru: '3 - Удовлетворительно' },
+    { value: 4, uz: '4 - Yaxshi', ru: '4 - Хорошо' },
+    { value: 5, uz: '5 - A’lo', ru: '5 - Отлично' },
+  ],
+};
+
+export const REPLY_ANSWER_DETAILS = {
+  uz: 'Qayta javob berish kerak',
+  ru: 'Нужно ответить еще раз',
+};

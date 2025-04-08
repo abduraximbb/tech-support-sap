@@ -7,9 +7,10 @@ import { AppealsModule } from 'src/appeal/appeal.module';
 import { AdminModule } from 'src/admin/admin.module';
 import { Customers } from 'src/admin/models/customer.model';
 import { Weekly_reminder } from './models/weekly-reminder.model';
+import { AdminSteps } from 'src/admin/models/admin-steps.model';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Bot,Customers,Weekly_reminder]),AppealsModule,AdminModule],
+  imports: [SequelizeModule.forFeature([Bot,Customers,Weekly_reminder,AdminSteps]),AppealsModule,AdminModule],
   controllers: [],
   providers: [BotService,BotUpdate],
 })

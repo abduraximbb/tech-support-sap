@@ -18,12 +18,12 @@ export class Calls extends Model<Calls, ICallsCreationAttr> {
   id: number;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
   })
   user_id: number;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
   })
   sap_id: number;
 

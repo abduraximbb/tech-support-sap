@@ -9,8 +9,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {
+  ADD_QUESTION,
+  ADD_QUESTION_OR_NO,
+  ANSWER_BAL,
   ANSWERED,
   ANSWERED_TIME,
+  APPEAL_COMPLETED,
   APPEAL_DETAILS,
   APPEAL_EDITED,
   APPEAL_ID,
@@ -22,6 +26,7 @@ import {
   CALL_DETAILS,
   CHOOSE_APPPEAL,
   CHOOSE_IMPOERTANCE,
+  COMPLETED_APPEAL,
   DATE_APPEAL,
   EDIT_APPEAL,
   EMPLOYEE_NAME,
@@ -31,6 +36,8 @@ import {
   NEW_OR_UPDATED_APPEAL,
   NO_ANSWERED,
   NO_APPEALS,
+  REPLY_ANSWER,
+  REPLY_ANSWER_DETAILS,
   SEND_BUTTON,
   SEND_MEDIA,
   STATUS_APPEAL,
@@ -39,11 +46,12 @@ import {
   WE_ARE_CALLING,
   WRITE_TEXT,
 } from 'src/language_data';
-import { GROUP_ID, chunkArray } from 'src/app.constants';
+import { GROUP_ID, chunkArray, formatDateTime } from 'src/app.constants';
 import { Calls } from './models/calls.model';
 import { keyboard } from 'telegraf/typings/markup';
 import { Customers } from 'src/admin/models/customer.model';
 import { TemporaryDate } from './models/temporary-date.model';
+import { TemporaryCustomersIds } from 'src/admin/models/temporary-customers-id.model';
 
 @Injectable()
 export class AppealsService {
@@ -55,6 +63,8 @@ export class AppealsService {
     @InjectModel(Customers) private readonly customersModel: typeof Customers,
     @InjectModel(TemporaryDate)
     private readonly temporaryDateModel: typeof TemporaryDate,
+    @InjectModel(TemporaryCustomersIds)
+    private readonly temporaryCustomersIds: typeof TemporaryCustomersIds,
   ) {
     this.bot = new Telegraf(process.env.BOT_TOKEN);
   }
@@ -158,15 +168,21 @@ export class AppealsService {
             order: [['updatedAt', 'DESC']], // ID bo‘yicha kamayish tartibida saralash
           });
 
-          await appeal.update({
-            media: [
-              ...(appeal.media || []),
-              {
-                key: 'photo',
-                file_name: ctx.message.photo[3].file_id,
-              },
-            ],
-          });
+          const photoSizes = ctx.message.photo;
+          const bestPhoto = photoSizes?.[photoSizes.length - 1]; // Eng sifatlisini tanlaymiz
+
+          if (bestPhoto?.file_id) {
+            const updatedMedia = Array.isArray(appeal.media)
+              ? [...appeal.media]
+              : [];
+
+            updatedMedia.push({
+              key: 'photo',
+              file_name: bestPhoto.file_id,
+            });
+
+            await appeal.update({ media: updatedMedia });
+          }
         }
       }
     } catch (error) {
@@ -267,22 +283,6 @@ export class AppealsService {
           ).resize(),
         },
       );
-
-      const formatDateTime = (date: Date): string => {
-        return new Intl.DateTimeFormat('uz-UZ', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false, // 24 soatlik format
-        })
-          .format(date)
-          .replace(/\//g, '.')
-          .replace(',', '');
-      };
-
-      // let messageText = `Yangi murojaat\nMurojaat ID: ${appeal.id}\nUser ID: ${userId}\nSAP ID: ${appeal.sap_id}\nCompany name: ${user.company_name}\nUser name: ${user.name}\nMurojaat matni: ${appeal.text}\nMuhimlilik: ${appeal.importance_level}\nMurojaat vaqti: ${formatDateTime(new Date(appeal.updatedAt))}`;
 
       let messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][0]}</b>\n
 <b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
@@ -394,22 +394,15 @@ export class AppealsService {
         );
         await user.update({ last_step: 'finish' });
 
-        const formatDateTime = (date: Date): string => {
-          return new Intl.DateTimeFormat('uz-UZ', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false, // 24 soatlik format
-          })
-            .format(date)
-            .replace(/\//g, '.')
-            .replace(',', '');
-        };
+        const temporary_customers_id = await this.temporaryCustomersIds.findOne(
+          { where: { customer_id: userId, appeal_id: appeal.id } },
+        );
 
-        // let messageText = `${appeal.id} - murjaat o'zgartirildi\nUser ID: ${userId}\nSAP ID: ${appeal.sap_id}\nCompany name: ${user.company_name}\nUser name: ${user.name}\nMurojaat matni: ${appeal.text}\nMuhimlilik: ${appeal.importance_level}\nMurojaat vaqti: ${formatDateTime(new Date(appeal.updatedAt))}`;
-        let messageText = `<b>${appeal.id} - ${NEW_OR_UPDATED_APPEAL[user.language][1]}</b>\n
+        let messageText = '';
+
+        if (temporary_customers_id) {
+          messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][2]}</b>\n
+<b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
 <b>${APPEAL_DETAILS[user.language][1]}</b> ${userId}\n
 <b>${APPEAL_DETAILS[user.language][2]}</b> ${appeal.sap_id}\n
 <b>${APPEAL_DETAILS[user.language][3]}</b> ${user.company_name}\n
@@ -418,6 +411,18 @@ export class AppealsService {
 <b>${APPEAL_DETAILS[user.language][6]}</b> ${appeal.importance_level}\n
 <b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}\n
 <b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}`;
+        } else {
+          messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][1]}</b>\n
+  <b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
+  <b>${APPEAL_DETAILS[user.language][1]}</b> ${userId}\n
+  <b>${APPEAL_DETAILS[user.language][2]}</b> ${appeal.sap_id}\n
+  <b>${APPEAL_DETAILS[user.language][3]}</b> ${user.company_name}\n
+  <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
+  <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
+  <b>${APPEAL_DETAILS[user.language][6]}</b> ${appeal.importance_level}\n
+  <b>${APPEAL_DETAILS[user.language][7]}</b> ${formatDateTime(new Date(appeal.updatedAt))}\n
+  <b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}`;
+        }
 
         await this.bot.telegram.sendMessage(GROUP_ID, messageText, {
           parse_mode: 'HTML',
@@ -521,7 +526,7 @@ export class AppealsService {
           CHOOSE_APPPEAL[user.language],
           {
             parse_mode: 'HTML',
-            ...Markup.keyboard([[BACT_TO_MENU[user.language]]]),
+            ...Markup.keyboard([[BACT_TO_MENU[user.language]]]).resize(),
           },
         );
 
@@ -691,7 +696,12 @@ export class AppealsService {
         {
           header: ANSWERED_TIME[user.language],
           key: 'answered_time',
-          width: 20,
+          width: 25,
+        },
+        {
+          header: APPEAL_COMPLETED[user.language][4],
+          key: 'answer_bal',
+          width: 17,
         },
       ];
 
@@ -717,25 +727,6 @@ export class AppealsService {
             ? NO_ANSWERED[user.language]
             : ANSWERED[user.language];
 
-        const formatDateTime = (date: Date): string => {
-          if (date) {
-            return new Intl.DateTimeFormat('uz-UZ', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false,
-            })
-              .format(date)
-              .replace(/\//g, '.')
-              .replace(',', '');
-          } else {
-            return '-';
-          }
-        };
-
         const row = worksheet.addRow({
           id: appeal.id,
           text: appeal.text,
@@ -743,6 +734,7 @@ export class AppealsService {
           date: formatDateTime(appeal.updatedAt),
           employee_name: appeal.name,
           answered_time: formatDateTime(appeal.answered_time),
+          answer_bal: appeal.answer_bal,
         });
 
         // **Text ustuniga wrapText qo‘shish**
@@ -786,20 +778,6 @@ export class AppealsService {
         name: user.name,
         sap_id: user.sap_id,
       });
-
-      const formatDateTime = (date: Date): string => {
-        return new Intl.DateTimeFormat('uz-UZ', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false, // 24 soatlik format
-        })
-          .format(date)
-          .replace(/\//g, '.')
-          .replace(',', '');
-      };
 
       const messageText =
         `<b>${CALL_DETAILS[user.language][0]}</b>\n\n` +
@@ -870,7 +848,7 @@ export class AppealsService {
 
           await ctx.reply(SEND_MEDIA[user.language], {
             parse_mode: 'HTML',
-            ...Markup.keyboard([[SEND_BUTTON[user.language]]]),
+            ...Markup.keyboard([[SEND_BUTTON[user.language]]]).resize(),
           });
         }
       } else if (user.last_step.split('_')[0] === 'media') {
@@ -885,15 +863,21 @@ export class AppealsService {
             ],
           });
         } else if ('photo' in ctx.message) {
-          await appeal.update({
-            media: [
-              ...(appeal.media || []),
-              {
-                key: 'photo',
-                file_name: ctx.message.photo[3].file_id,
-              },
-            ],
-          });
+          const photos = ctx.message.photo;
+          const targetPhoto = photos?.[2] || photos?.[photos.length - 1]; // Agar 3-chi yo‘q bo‘lsa, oxirgi sifatlisini olaylik
+
+          if (targetPhoto?.file_id) {
+            const updatedMedia = Array.isArray(appeal.media)
+              ? [...appeal.media]
+              : [];
+
+            updatedMedia.push({
+              key: 'photo',
+              file_name: targetPhoto.file_id,
+            });
+
+            await appeal.update({ media: updatedMedia });
+          }
         } else if ('voice' in ctx.message) {
           await appeal.update({
             media: [
@@ -956,6 +940,242 @@ export class AppealsService {
       });
     } catch (error) {
       console.log('onBackToMenu: ', error);
+    }
+  }
+
+  async onCompleteAppealByCustomer(ctx: Context) {
+    try {
+      const temporary_customers_id = await this.temporaryCustomersIds.findOne({
+        where: { customer_id: ctx.from.id },
+        order: [['createdAt', 'DESC']],
+      });
+
+      if (temporary_customers_id) {
+        const user = await this.botModel.findByPk(
+          temporary_customers_id.customer_id,
+        );
+
+        ctx.reply(ANSWER_BAL[user.language], {
+          parse_mode: 'HTML',
+          ...Markup.keyboard(
+            chunkArray(
+              ANSWER_BAL.options.map((opt) => opt[user.language]),
+              2,
+            ),
+          ).resize(),
+        });
+      }
+    } catch (error) {
+      console.log('onCompleteAppealByCustomer: ', error);
+    }
+  }
+
+  async onBalToAnswer(ctx: Context) {
+    try {
+      if ('text' in ctx.message) {
+        const text = ctx.message.text.split('')[0];
+
+        const temporary_customers_id = await this.temporaryCustomersIds.findOne(
+          {
+            where: { customer_id: ctx.from.id },
+            order: [['createdAt', 'DESC']],
+          },
+        );
+
+        if (temporary_customers_id) {
+          const user = await this.botModel.findByPk(
+            temporary_customers_id.customer_id,
+          );
+
+          await ctx.reply(
+            `${temporary_customers_id.appeal_id} - ${COMPLETED_APPEAL[user.language][0]}\n${COMPLETED_APPEAL[user.language][1]}`,
+            {
+              parse_mode: 'HTML',
+              ...Markup.keyboard(
+                chunkArray(MAIN_MENU_BUTTONS[user.language], 2),
+              ).resize(),
+            },
+          );
+          await temporary_customers_id.destroy();
+
+          const messageText =
+            `<b>${APPEAL_COMPLETED[user.language][0]}</b>\n\n` +
+            `<b>${APPEAL_COMPLETED[user.language][1]}</b> ${temporary_customers_id.appeal_id}\n\n` +
+            `<b>${APPEAL_COMPLETED[user.language][2]}</b> ${user.name}\n\n` +
+            `<b>${APPEAL_COMPLETED[user.language][4]}</b> ${text}\n\n` +
+            `<b>${APPEAL_COMPLETED[user.language][3]}</b> ${formatDateTime(new Date())}`;
+
+          await this.bot.telegram.sendMessage(GROUP_ID, messageText, {
+            parse_mode: 'HTML',
+          });
+
+          await this.appealsModel.update(
+            { status: Status.COMPLETED, answer_bal: +text },
+            { where: { id: temporary_customers_id.appeal_id } },
+          );
+
+          const customerGroupId = await this.customersModel.findOne({
+            where: { customer_id: user.sap_id },
+            attributes: ['customer_group_id'], // Faqat kerakli ustunni olish
+            raw: true,
+          });
+
+          await this.bot.telegram.sendMessage(
+            customerGroupId.customer_group_id,
+            messageText,
+            { parse_mode: 'HTML' },
+          );
+        }
+      } else {
+        console.log('Bu text emas (masalan, rasm yoki sticker)');
+      }
+    } catch (error) {
+      console.log('onBalToAnswer xatolik:', error);
+    }
+  }
+
+  async onAddToAppealByCustomer(ctx: Context) {
+    try {
+      const user = await this.botModel.findByPk(ctx.from.id);
+      ctx.reply(ADD_QUESTION[user.language], {
+        parse_mode: 'HTML',
+        ...Markup.keyboard([
+          [
+            ADD_QUESTION_OR_NO[user.language][0],
+            ADD_QUESTION_OR_NO[user.language][1],
+          ],
+        ]).resize(),
+      });
+    } catch (error) {
+      console.log('onAddToAppealByCustomer: ', error);
+    }
+  }
+
+  async onReplyBack(ctx: Context) {
+    try {
+      const user = await this.botModel.findByPk(ctx.from.id);
+      const temporary_customers_id = await this.temporaryCustomersIds.findOne({
+        where: { customer_id: user.user_id },
+      });
+
+      await ctx.reply(
+        `${temporary_customers_id.appeal_id} ${REPLY_ANSWER[user.language]}`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.keyboard(
+            chunkArray(MAIN_MENU_BUTTONS[user.language], 2),
+          ).resize(),
+        },
+      );
+      const appeal = await this.appealsModel.findByPk(
+        temporary_customers_id.appeal_id,
+      );
+
+      const messageText =
+        `<b>${REPLY_ANSWER_DETAILS[user.language]}</b>\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][1]}</b> ${user.user_id}\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][2]}</b> ${user.sap_id}\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][3]}</b> ${appeal.company_name}\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][4]}</b> ${appeal.name}\n\n` +
+        `<b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}`;
+
+      await this.bot.telegram.sendMessage(GROUP_ID, messageText, {
+        parse_mode: 'HTML',
+      });
+      for (const msg of appeal.media) {
+        if (msg.key === 'file') {
+          await this.bot.telegram.sendDocument(GROUP_ID, msg.file_name);
+        } else if (msg.key === 'photo') {
+          await this.bot.telegram.sendPhoto(GROUP_ID, msg.file_name);
+        } else if (msg.key === 'video') {
+          await this.bot.telegram.sendVideo(GROUP_ID, msg.file_name);
+        } else {
+          await this.bot.telegram.sendVoice(GROUP_ID, msg.file_name);
+        }
+      }
+      await temporary_customers_id.destroy();
+
+      //Send to client
+
+      const customer = await this.customersModel.findOne({
+        where: { customer_id: user.sap_id },
+      });
+      await this.bot.telegram.sendMessage(
+        customer.customer_group_id,
+        messageText,
+        {
+          parse_mode: 'HTML',
+        },
+      );
+      for (const msg of appeal.media) {
+        if (msg.key === 'file') {
+          await this.bot.telegram.sendDocument(
+            customer.customer_group_id,
+            msg.file_name,
+          );
+        } else if (msg.key === 'photo') {
+          await this.bot.telegram.sendPhoto(
+            customer.customer_group_id,
+            msg.file_name,
+          );
+        } else if (msg.key === 'video') {
+          await this.bot.telegram.sendVideo(
+            customer.customer_group_id,
+            msg.file_name,
+          );
+        } else {
+          await this.bot.telegram.sendVoice(
+            customer.customer_group_id,
+            msg.file_name,
+          );
+        }
+      }
+    } catch (error) {
+      console.log('onReplyBack: ', error);
+    }
+  }
+
+  async onAddAdditionQuestion(ctx: Context) {
+    try {
+      if (ctx.chat.id < 0) return;
+
+      const userId = ctx.from.id;
+      const user = await this.botModel.findOne({ where: { user_id: userId } });
+      const temporary_customers_id = await this.temporaryCustomersIds.findOne({
+        where: { customer_id: userId },
+      });
+      const appeal = await this.appealsModel.findByPk(
+        temporary_customers_id.appeal_id,
+      );
+
+      if (appeal) {
+        await user.update({
+          last_step: `edit_${appeal.id}`,
+        });
+        await ctx.reply(appeal.text);
+        if (appeal.media.length) {
+          for (const media of appeal.media) {
+            if (media.key === 'file') {
+              await ctx.sendDocument(media.file_name);
+            } else if (media.key === 'photo') {
+              await ctx.sendPhoto(media.file_name);
+            } else if (media.key === 'video') {
+              await ctx.sendVideo(media.file_name);
+            } else {
+              await ctx.sendVoice(media.file_name);
+            }
+          }
+        }
+
+        await ctx.reply(EDIT_APPEAL[user.language], {
+          reply_markup: { remove_keyboard: true },
+        });
+      } else {
+        ctx.reply(APPEAL_NOT_FOUND[user.language]);
+      }
+    } catch (error) {
+      console.log('onAddAdditionQuestion: ', error);
     }
   }
 }

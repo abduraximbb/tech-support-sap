@@ -11,7 +11,7 @@ export class TemporaryDate extends Model<
   ITemporaryDateCreationAttr
 > {
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
   })
   user_id: number;
 
