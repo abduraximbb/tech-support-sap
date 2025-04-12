@@ -1,7 +1,13 @@
 export const SEND_PHONE = {
-  uz: "📞 Iltimos, telefon raqamingizni jo'nating:",
-  ru: '📞 Пожалуйста, отправьте свой номер телефона:',
+  uz: "📞 Iltimos, telefon raqamingizni jo'nating:\n'📲 Telefon raqamni jo'natish' ni bosing yoki o'zingiz yozing misol(+998901234567)",
+  ru: "📞 Пожалуйста, отправьте свой номер телефона:\nНажмите '📲 Отправить номер телефона' или введите вручную, например (+998901234567)",
 };
+
+export const SEND_PHONE_ERROR = {
+  uz: "❌ Telefon raqam formati noto'g'ri. Iltimos, +998901234567 ko'rinishida kiriting.",
+  ru: '❌ Неверный формат номера телефона. Пожалуйста, введите в формате +998901234567.',
+};
+
 
 export const SEND_PHONE_BUTTON = {
   uz: "📲 Telefon raqamni jo'natish",
@@ -261,16 +267,14 @@ export const IS_SATISFACTORY = {
 };
 
 export const YES_OR_NO = {
-  uz: ['✅ Murojaatni yopish', '➕ Qo\'shimcha qilish'],
+  uz: ['✅ Murojaatni yopish', "➕ Qo'shimcha qilish"],
   ru: ['✅ Закрыть обращение', '➕ Добавить вопрос'],
 };
-
 
 export const COMPLETED_APPEAL = {
   uz: ['murojaat yopildi', '✅ Rahmat! Sizning fikringiz biz uchun muhim.'],
   ru: ['oбращение закрыто', '✅ Спасибо! Ваше мнение важно для нас.'],
 };
-
 
 export const APPEAL_NUMBER = {
   uz: 'Murojaat raqami - ',
@@ -281,7 +285,6 @@ export const ADD_QUESTION = {
   uz: "❓ Qo'shimcha savol berasizmi yoki 🔄 faqat qayta javob berish kerakmi?",
   ru: '❓ У вас есть дополнительный вопрос или 🔄 просто повторный ответ?',
 };
-
 
 export const ADD_QUESTION_OR_NO = {
   uz: ["➕ Qo'shimcha savol berish", '🔄 Qayta javob olish'],
@@ -325,4 +328,9 @@ export const ANSWER_BAL = {
 export const REPLY_ANSWER_DETAILS = {
   uz: 'Qayta javob berish kerak',
   ru: 'Нужно ответить еще раз',
+};
+
+export const BOT_STOPPED = {
+  uz: "⛔️ Bot to'xtatildi.\n🔄 Agar yana foydalanmoqchi bo'lsangiz, qaytadan ro'yxatdan o'ting.",
+  ru: '⛔️ Бот остановлен.\n🔄 Если вы хотите воспользоваться снова, пожалуйста, пройдите регистрацию заново.',
 };

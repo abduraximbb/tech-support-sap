@@ -6,11 +6,11 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
   );
 }
 
-export const ADMINS = [7559785750, 847525699];
+export const ADMINS = [7559785750, 847525699, 127504303, 851445008];
 
 export const GROUP_ID = -1002520324234;
 
-export  const formatDateTime = (date: Date): string => {
+export const formatDateTime = (date: Date): string => {
   if (date) {
     return new Intl.DateTimeFormat('uz-UZ', {
       day: '2-digit',

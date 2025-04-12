@@ -9,6 +9,7 @@ import * as cron from 'node-cron';
 
 import {
   ALREADY_REGISTRATED,
+  BOT_STOPPED,
   INVALID_ID,
   LANGUAGE_UPDATED,
   MAIN_MENU_BUTTONS,
@@ -17,6 +18,7 @@ import {
   SEND_NAME,
   SEND_PHONE,
   SEND_PHONE_BUTTON,
+  SEND_PHONE_ERROR,
 } from 'src/language_data';
 import { chunkArray } from 'src/app.constants';
 import { Customers } from 'src/admin/models/customer.model';
@@ -32,6 +34,21 @@ export class BotService {
     this.bot = new Telegraf(process.env.BOT_TOKEN);
 
     this.startCronJob(); // ✅ To‘g‘ri joyga qo‘yildi
+  }
+
+  async onStop(ctx: Context) {
+    try {
+      const user = await this.botModel.findByPk(ctx.from.id);
+      if (user) {
+        const lang = user.language;
+        await user.destroy();
+        await ctx.reply(BOT_STOPPED[lang], {
+          reply_markup: { remove_keyboard: true },
+        });
+      }
+    } catch (error) {
+      console.log('onStop: ', error);
+    }
   }
 
   async onStart(ctx: Context) {
@@ -136,7 +153,7 @@ export class BotService {
           return;
         }
 
-        if (user && user.last_step == 'phone') {
+        if (user && user.last_step === 'phone') {
           await user.update({
             last_step: 'name',
             phone: ctx.message.contact.phone_number,
@@ -149,6 +166,52 @@ export class BotService {
       }
     } catch (error) {
       console.log('onContact: ', error);
+    }
+  }
+
+  async onAddPhoneNumber(ctx: Context) {
+    try {
+      if (ctx.chat.id < 0) return;
+
+      if ('text' in ctx.message) {
+        const user = await this.botModel.findByPk(ctx.from.id);
+        if (!user) {
+          this.onStart(ctx);
+          return;
+        }
+        if (user && user.last_step === 'phone') {
+          const text = ctx.message.text.trim();
+
+          // 🔧 Belgilardan tozalash (faqat raqamlar qoldiriladi)
+          const cleanText = text.replace(/\D/g, ''); // +, -, bo‘sh joy — hammasini olib tashlaydi
+
+          // 🔄 998 bilan boshlanmasa — boshiga 998 qo‘shamiz
+          const normalized = cleanText.startsWith('998')
+            ? cleanText
+            : '998' + cleanText;
+
+          // ✅ Raqam formati tekshiruvi (998 + 9 ta raqam bo‘lishi kerak)
+          const phoneRegex = /^998\d{9}$/;
+
+          if (phoneRegex.test(normalized)) {
+            await user.update({
+              last_step: 'name',
+              phone: normalized,
+            });
+
+            await ctx.reply(SEND_NAME[user.language], {
+              reply_markup: { remove_keyboard: true },
+            });
+          } else {
+            await ctx.reply(SEND_PHONE_ERROR[user.language]);
+          }
+        }
+      }
+    } catch (error) {
+      console.log('onAddPhoneNumber: ', error);
+      await ctx.reply(
+        "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+      );
     }
   }
 
@@ -205,28 +268,24 @@ export class BotService {
     });
 
     // const
-
     const message =
-      'Ассалому алайкум, ҳурматли мижоз! \n\n' +
-      'ABC жамоаси сиз билан ҳамкорликда ишлашдан мамнун. ' +
-      'ABC компаниясидаги қўллаб-қувватлаш жамоаси сизда учрайдиган муаммоларни ҳал қилишга тайёр. ' +
-      'Агар SAP Business One дастурида қандайдир муаммолар туғилса, қуйидаги рақамга боғланинг: \n\n' +
-      '📞 Tel: 78 122 00 25';
+      'Assalomu alaykum, hurmatli mijoz!\n\n' +
+      'ALTITUDE jamoasi bilan hamkorlik qilayotganingiz uchun Sizga samimiy minnatdorchilik bildiramiz.\n\n' +
+      'Kompaniyamizdagi texnik qo‘llab-quvvatlash guruhi SAP Business One tizimi bo‘yicha yuzaga kelishi mumkin bo‘lgan muammo yoki savollaringizni samarali hal etishga doimo tayyor.\n\n' +
+      'Qo‘shimcha ma’lumot yoki yordam kerak bo‘lsa, quyidagi raqam orqali biz bilan bog‘laning:\n\n' +
+      '📞 Telefon: 78 122 00 25\n\n' +
+      '[Telegram](https://t.me/altitude_one) | [Instagram](https://www.instagram.com/altitude.uz/) | [LinkedIn](https://www.linkedin.com/company/altitude-uz/posts/?feedView=all)';
 
-    const gifUrl =
-      'CgACAgIAAxkBAAIJOGfihy1t7n9r3zGd0WAUAAFvVVgmHAAChFUAAvNjQEgqDwQe4Nw-7zYE';
+    const photoUrl =
+      'AgACAgIAAxkBAAIOamf3rinfKb7uFhLIYOcfL3-pBvXYAAKT_DEbKlDBS7KkDQU6JlNiAQADAgADeAADNgQ';
 
     for (const group of groups) {
       try {
         if (group.customer_group_id) {
-          await this.bot.telegram.sendDocument(
-            group.customer_group_id,
-            gifUrl,
-            {
-              caption: message,
-              parse_mode: 'HTML',
-            },
-          );
+          await this.bot.telegram.sendPhoto(group.customer_group_id, photoUrl, {
+            caption: message,
+            parse_mode: 'Markdown',
+          });
         }
       } catch (error) {
         console.error(`Xabar jo'natishda xatolik: `, error);
@@ -237,7 +296,7 @@ export class BotService {
   // ✅ Cron jobni ishga tushirish
   startCronJob() {
     cron.schedule(
-      '31 11 * * 2',
+      '41 17 * * 4',
       () => {
         this.weekly_reminder(); // Haftalik xabarni jo‘natish
       },

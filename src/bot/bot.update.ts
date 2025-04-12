@@ -33,6 +33,11 @@ export class BotUpdate {
     await this.botService.onStart(ctx);
   }
 
+  @Command('stop')
+  async onStop(@Ctx() ctx:Context){
+    await this.botService.onStop(ctx)
+  }
+
   @Hears(["🇺🇿O'zbekcha", '🇷🇺Русский'])
   async onLanguage(@Ctx() ctx: Context) {
     await this.botService.onLanguage(ctx);
@@ -61,6 +66,10 @@ export class BotUpdate {
 
   @On('photo')
   async onPhoto(@Ctx() ctx: Context) {
+    if('photo' in ctx.message){
+      console.log(ctx.message.photo[2].file_id);
+      
+    }
     if (ADMINS.includes(ctx.from.id)) {
       await this.adminService.onAdminReply(ctx);
       return;
@@ -300,6 +309,9 @@ export class BotUpdate {
       user?.last_step.split('_')[0] === 'edit'
     ) {
       await this.appealService.onAddAppeal(ctx);
+      return;
+    } else if (user && user.last_step === 'phone') {
+      await this.botService.onAddPhoneNumber(ctx);
       return;
     }
     await this.botService.onText(ctx);

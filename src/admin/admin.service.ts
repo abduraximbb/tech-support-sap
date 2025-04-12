@@ -11,6 +11,7 @@ import { TemporaryCustomersIds } from './models/temporary-customers-id.model';
 import {
   APPEAL_DETAILS,
   APPEAL_NUMBER,
+  CALL_DETAILS,
   IS_SATISFACTORY,
   YES_OR_NO,
 } from 'src/language_data';
@@ -194,10 +195,13 @@ export class AdminServise {
       });
 
       appeals.forEach((appeal) => {
-        const status_appeal =
+        let status_appeal =
           appeal.status === Status.WAITING
             ? 'Javob berilmagan'
-            : 'Javob berilgan';
+            : appeal.text === CALL_DETAILS.uz[0] ||
+                appeal.text === CALL_DETAILS.ru[0]
+              ? '-'
+              : 'Javob berilgan';
 
         const formatDateTime = (date: Date): string => {
           if (date) {

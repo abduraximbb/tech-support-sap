@@ -81,6 +81,8 @@ export class AppealsService {
           parse_mode: 'HTML',
           ...Markup.keyboard([[BACT_TO_MENU[user.language]]]).resize(),
         });
+      } else {
+        ctx.reply("Avval ro'yxatdan o'ting");
       }
     } catch (error) {
       console.log('onAppeal', error);
@@ -287,7 +289,6 @@ export class AppealsService {
       let messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][0]}</b>\n
 <b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
 <b>${APPEAL_DETAILS[user.language][1]}</b> ${userId}\n
-<b>${APPEAL_DETAILS[user.language][2]}</b> ${appeal.sap_id}\n
 <b>${APPEAL_DETAILS[user.language][3]}</b> ${user.company_name}\n
 <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
 <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
@@ -404,7 +405,6 @@ export class AppealsService {
           messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][2]}</b>\n
 <b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
 <b>${APPEAL_DETAILS[user.language][1]}</b> ${userId}\n
-<b>${APPEAL_DETAILS[user.language][2]}</b> ${appeal.sap_id}\n
 <b>${APPEAL_DETAILS[user.language][3]}</b> ${user.company_name}\n
 <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
 <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
@@ -415,7 +415,6 @@ export class AppealsService {
           messageText = `<b>${NEW_OR_UPDATED_APPEAL[user.language][1]}</b>\n
   <b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n
   <b>${APPEAL_DETAILS[user.language][1]}</b> ${userId}\n
-  <b>${APPEAL_DETAILS[user.language][2]}</b> ${appeal.sap_id}\n
   <b>${APPEAL_DETAILS[user.language][3]}</b> ${user.company_name}\n
   <b>${APPEAL_DETAILS[user.language][4]}</b> ${user.name}\n
   <b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}\n
@@ -672,7 +671,7 @@ export class AppealsService {
       const userId = ctx.from.id;
       const user = await this.botModel.findOne({ where: { user_id: userId } });
       const appeals = await this.appealsModel.findAll({
-        where: { user_id: userId },
+        where: { sap_id: user.sap_id },
       });
 
       const reportsDir = path.join(__dirname, '..', 'tmp');
@@ -783,7 +782,6 @@ export class AppealsService {
         `<b>${CALL_DETAILS[user.language][0]}</b>\n\n` +
         `<b>${CALL_DETAILS[user.language][1]}</b> ${newCall.id}\n\n` +
         `<b>${CALL_DETAILS[user.language][2]}</b> ${user.user_id}\n\n` +
-        `<b>${CALL_DETAILS[user.language][3]}</b> ${user.sap_id}\n\n` +
         `<b>${CALL_DETAILS[user.language][4]}</b> ${user.company_name}\n\n` +
         `<b>${CALL_DETAILS[user.language][5]}</b> ${user.name}\n\n` +
         `<b>${CALL_DETAILS[user.language][6]}</b> ${user.phone}\n\n` +
@@ -799,6 +797,14 @@ export class AppealsService {
           `<b>${SUCCESSED_CALL_APPEAL[user.language][2]}</b>`,
         { parse_mode: 'HTML' },
       );
+
+      await this.appealsModel.create({
+        id: newCall.id,
+        sap_id: user.sap_id,
+        company_name: user.company_name,
+        name: user.name,
+        text: CALL_DETAILS[user.language][0],
+      });
 
       //---------------Send to Client----------------//
       const customer = await this.customersModel.findOne({
@@ -1075,7 +1081,6 @@ export class AppealsService {
         `<b>${REPLY_ANSWER_DETAILS[user.language]}</b>\n\n` +
         `<b>${APPEAL_DETAILS[user.language][0]}</b> ${appeal.id}\n\n` +
         `<b>${APPEAL_DETAILS[user.language][1]}</b> ${user.user_id}\n\n` +
-        `<b>${APPEAL_DETAILS[user.language][2]}</b> ${user.sap_id}\n\n` +
         `<b>${APPEAL_DETAILS[user.language][3]}</b> ${appeal.company_name}\n\n` +
         `<b>${APPEAL_DETAILS[user.language][4]}</b> ${appeal.name}\n\n` +
         `<b>${APPEAL_DETAILS[user.language][5]}</b> ${appeal.text}`;
