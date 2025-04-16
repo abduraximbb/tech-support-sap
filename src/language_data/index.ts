@@ -8,7 +8,6 @@ export const SEND_PHONE_ERROR = {
   ru: '❌ Неверный формат номера телефона. Пожалуйста, введите в формате +998901234567.',
 };
 
-
 export const SEND_PHONE_BUTTON = {
   uz: "📲 Telefon raqamni jo'natish",
   ru: '📲 Отправить номер телефона',
@@ -287,8 +286,12 @@ export const ADD_QUESTION = {
 };
 
 export const ADD_QUESTION_OR_NO = {
-  uz: ["➕ Qo'shimcha savol berish", '🔄 Qayta javob olish'],
-  ru: ['➕ Задать дополнительный вопрос', '🔄 Получить ответ заново'],
+  uz: ["➕ Qo'shimcha savol berish", '🔄 Qayta javob olish', 'Ortga'],
+  ru: [
+    '➕ Задать дополнительный вопрос',
+    '🔄 Получить ответ заново',
+    'Назад',
+  ],
 };
 
 export const REPLY_ANSWER = {
@@ -333,4 +336,9 @@ export const REPLY_ANSWER_DETAILS = {
 export const BOT_STOPPED = {
   uz: "⛔️ Bot to'xtatildi.\n🔄 Agar yana foydalanmoqchi bo'lsangiz, qaytadan ro'yxatdan o'ting.",
   ru: '⛔️ Бот остановлен.\n🔄 Если вы хотите воспользоваться снова, пожалуйста, пройдите регистрацию заново.',
+};
+
+export const COMPLETED_OR_NOT = {
+  uz: "Murojaatni yopishni xohlaysizmi yoki qo'shimcha javob olasizmi?",
+  ru: 'Хотите закрыть oбращения или получить дополнительный ответ?',
 };

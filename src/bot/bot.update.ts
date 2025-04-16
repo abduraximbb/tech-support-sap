@@ -34,8 +34,8 @@ export class BotUpdate {
   }
 
   @Command('stop')
-  async onStop(@Ctx() ctx:Context){
-    await this.botService.onStop(ctx)
+  async onStop(@Ctx() ctx: Context) {
+    await this.botService.onStop(ctx);
   }
 
   @Hears(["🇺🇿O'zbekcha", '🇷🇺Русский'])
@@ -66,9 +66,8 @@ export class BotUpdate {
 
   @On('photo')
   async onPhoto(@Ctx() ctx: Context) {
-    if('photo' in ctx.message){
+    if ('photo' in ctx.message) {
       console.log(ctx.message.photo[2].file_id);
-      
     }
     if (ADMINS.includes(ctx.from.id)) {
       await this.adminService.onAdminReply(ctx);
@@ -250,6 +249,11 @@ export class BotUpdate {
   @Hears('Menyuga qaytish')
   async onBackToAdminMenu(@Ctx() ctx: Context) {
     await this.adminService.onBackToAdminMenu(ctx);
+  }
+
+  @Hears(['Назад','Ortga'])
+  async onBactToChooseComplete(@Ctx() ctx:Context){
+    await this.appealService.onBactToChooseComplete(ctx)
   }
 
   @Hears([

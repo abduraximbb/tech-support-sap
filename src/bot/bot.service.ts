@@ -296,7 +296,7 @@ export class BotService {
   // ✅ Cron jobni ishga tushirish
   startCronJob() {
     cron.schedule(
-      '41 17 * * 4',
+      '00 10 * * 1',
       () => {
         this.weekly_reminder(); // Haftalik xabarni jo‘natish
       },

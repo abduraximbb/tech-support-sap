@@ -390,10 +390,13 @@ export class AdminServise {
         // Tugmalarni inline keyboard ichiga joylash
         await ctx.reply(textMessage, {
           parse_mode: 'HTML',
-          reply_markup: Markup.inlineKeyboard([
-            ...appeal_buttons,
-            pagination_buttons.length ? pagination_buttons : [],
-          ]).reply_markup, // ✅ Markup obyektining reply_markup qismini olish kerak
+          reply_markup: {
+            inline_keyboard: [
+              ...appeal_buttons,
+              ...(pagination_buttons.length ? [pagination_buttons] : []),
+            ],
+            resize_keyboard: true, // ❌ bu inline klaviatura uchun ishlamaydi
+          },
         });
       } else {
         ctx.reply("Javob berilmagan murojaatlar yo'q");
@@ -553,7 +556,7 @@ export class AdminServise {
     try {
       await ctx.reply('Kampaniya rasmiy nomini kiriting:', {
         parse_mode: 'HTML',
-        ...Markup.keyboard(['Menyuga qaytish']),
+        ...Markup.keyboard(['Menyuga qaytish']).resize(),
       });
 
       const exist_admin_step = await this.adminStepsModel.findOne({
@@ -615,7 +618,7 @@ export class AdminServise {
 
           await ctx.reply('Brand nomini kiriting:', {
             parse_mode: 'HTML',
-            ...Markup.keyboard(['Menyuga qaytish']),
+            ...Markup.keyboard(['Menyuga qaytish']).resize(),
           });
         }
       }
@@ -641,7 +644,7 @@ export class AdminServise {
 
           await ctx.reply('SAP tomonidan berilgan ID ni kiriting:', {
             parse_mode: 'HTML',
-            ...Markup.keyboard(['Menyuga qaytish']),
+            ...Markup.keyboard(['Menyuga qaytish']).resize(),
           });
         }
       }
@@ -672,7 +675,7 @@ export class AdminServise {
 
           await ctx.reply('Telegram guruh ID ni kiriting:', {
             parse_mode: 'HTML',
-            ...Markup.keyboard(['Menyuga qaytish']),
+            ...Markup.keyboard(['Menyuga qaytish']).resize(),
           });
         }
       }

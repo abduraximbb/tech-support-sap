@@ -27,6 +27,7 @@ import {
   CHOOSE_APPPEAL,
   CHOOSE_IMPOERTANCE,
   COMPLETED_APPEAL,
+  COMPLETED_OR_NOT,
   DATE_APPEAL,
   EDIT_APPEAL,
   EMPLOYEE_NAME,
@@ -45,6 +46,7 @@ import {
   SUCCESSED_CALL_APPEAL,
   WE_ARE_CALLING,
   WRITE_TEXT,
+  YES_OR_NO,
 } from 'src/language_data';
 import { GROUP_ID, chunkArray, formatDateTime } from 'src/app.constants';
 import { Calls } from './models/calls.model';
@@ -1050,6 +1052,7 @@ export class AppealsService {
             ADD_QUESTION_OR_NO[user.language][0],
             ADD_QUESTION_OR_NO[user.language][1],
           ],
+          [ADD_QUESTION_OR_NO[user.language][2]],
         ]).resize(),
       });
     } catch (error) {
@@ -1181,6 +1184,20 @@ export class AppealsService {
       }
     } catch (error) {
       console.log('onAddAdditionQuestion: ', error);
+    }
+  }
+
+  async onBactToChooseComplete(ctx: Context) {
+    try {
+      const user = await this.botModel.findByPk(ctx.from.id);
+      await ctx.reply(COMPLETED_OR_NOT[user.language], {
+        parse_mode: 'HTML',
+        reply_markup: Markup.keyboard([
+          [YES_OR_NO[user.language][0], YES_OR_NO[user.language][1]],
+        ]).resize().reply_markup, // <<< BU MUHIM!
+      });
+    } catch (error) {
+      console.log('onBactToChooseComplete', error);
     }
   }
 }

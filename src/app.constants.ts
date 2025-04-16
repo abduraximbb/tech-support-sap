@@ -6,7 +6,7 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
   );
 }
 
-export const ADMINS = [7559785750, 847525699, 127504303, 851445008];
+export const ADMINS = [7559785750, 847525699, 127504303, 851445008, 56800023];
 
 export const GROUP_ID = -1002520324234;
 
